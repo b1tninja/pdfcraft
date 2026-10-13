@@ -3862,6 +3862,7 @@ version = "0.7.1"
 dependencies = [
  "async-channel",
  "futures-lite",
+ "pdfcraft-scan",
  "zbus",
 ]
 
@@ -3914,6 +3915,15 @@ dependencies = [
  "pdfcraft-fonts",
  "serde",
  "skrifa 0.44.0",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "pdfcraft-scan"
+version = "0.7.1"
+dependencies = [
+ "image",
+ "log",
  "thiserror 2.0.21",
 ]
 
