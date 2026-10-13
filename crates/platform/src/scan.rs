@@ -1,6 +1,6 @@
 //! Image acquisition. The settings, errors and page handling are `pdfcraft-scan`; the Windows WIA
-//! backend is added separately. This module is the platform surface the app and the tools share, and
-//! it picks the backend: for now every platform answers "unsupported".
+//! backend is `pdfcraft-wia`. This module is the platform surface the app and the tools share, and
+//! it picks the backend: WIA on Windows, an "unsupported" answer elsewhere.
 //!
 //! [`acquire`] and [`ProgressToken`] deliver in-memory [`Page`] buffers. Path helpers such as
 //! [`write_pages`] are optional sinks for callers that want files; bindings that stay in memory
@@ -18,4 +18,7 @@ pub use pdfcraft_scan::{
     wia_error_message, write_pages,
 };
 
+#[cfg(not(windows))]
 pub use pdfcraft_scan::unsupported::{acquire, dump_devices, scanner_details, scanner_list, scanners};
+#[cfg(windows)]
+pub use pdfcraft_wia::{acquire, dump_devices, scanner_details, scanner_list, scanners};
