@@ -1174,7 +1174,7 @@ impl Default for ScanSettings {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ScanError {
-    #[error("scanning needs Windows and a WIA driver")]
+    #[error("scanning is only supported on Windows (WIA) in this version")]
     Unsupported,
     #[error("{0}")]
     Failed(String),

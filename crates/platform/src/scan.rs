@@ -18,6 +18,12 @@ pub use pdfcraft_scan::{
     wia_error_message, write_pages,
 };
 
+/// Whether this build has a scanner backend. It is a run-time answer, not a build-time one: other
+/// platforms compile the same code and report [`ScanError::Unsupported`] when a scan is asked for.
+pub const fn supported() -> bool {
+    cfg!(windows)
+}
+
 #[cfg(not(windows))]
 pub use pdfcraft_scan::unsupported::{acquire, dump_devices, scanner_details, scanner_list, scanners};
 #[cfg(windows)]
