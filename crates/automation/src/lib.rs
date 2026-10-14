@@ -38,7 +38,9 @@ use pdfcraft_platform::staging::{StagingName, create_staging, staging_suffixes};
 use pdfcraft_render::{PageRenderer, PageText, RenderConfig, RenderRequest, RequestKind};
 use serde_json::{Value, json};
 
-pub use scanning::{list_scan_devices, scan_device_details, scan_error_info_json};
+pub use scanning::{
+    CHECK_ACQUIRE_WARNING, ScanCheck, ScanCheckOptions, list_scan_devices, render_check_text, scan_check, scan_device_details, scan_error_info_json,
+};
 pub use tools::{ToolDef, tools};
 
 /// One piece of a tool's result.

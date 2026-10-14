@@ -11,7 +11,7 @@ other backends are future work behind the same seam.
 | `pdfcraft-platform` | `pdfcraft_platform::scan`: re-exports the contract and picks the backend (`pdfcraft-wia` under `cfg(windows)`, `unsupported` elsewhere). `scan::supported()` answers at run time. |
 | `pdfcraft-create` | Keeps a black-and-white 1-bit BMP as a 1-bit image when creating a PDF. |
 | `pdfcraft-automation` | The `scan_devices` and `scan_acquire` tools (and their MCP form). |
-| `pdfcraft-cli` | `pdfcraft-cli scan devices` and `pdfcraft-cli scan --out DIR --yes`; see [cli.md](cli.md). |
+| `pdfcraft-cli` | `pdfcraft-cli scan devices`, `pdfcraft-cli scan check` (what the stack sees; one optional 100 dpi acquire) and `pdfcraft-cli scan --out DIR --yes`; see [cli.md](cli.md). |
 
 Devices, feeder, WSD and duplex behaviour are described in
 [hardware-parity.md](hardware-parity.md#windows-wia-scanner-acquire).

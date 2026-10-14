@@ -64,6 +64,8 @@ pdfcraft-cli batch <files or dirs...> --steps convert,ocr,optimize --out-dir DIR
                       [--ppi 150] [--quality 60] [--dpi 300] [--language en] [--ocr-all-pages]
 pdfcraft-cli scan   devices [--device TEXT | --details | --dump]
                       list scanners without opening them; --device opens matches, --details all; --dump every WIA property
+pdfcraft-cli scan   check [--details | --device TEXT [--acquire [--out DIR]]] [--json]
+                      what the scan stack sees; no paper moves unless --acquire (needs --device: one 100 dpi page; exit 1 on any problem)
 pdfcraft-cli scan   --out DIR --yes [--dpi 200] [--color gray|rgb|bw]
                       [--source auto|feeder|glass] [--pages 1|all] [--device NAME]
                       [--brightness N] [--contrast N] [--threshold N]
@@ -950,6 +952,8 @@ const SCAN_OPTIONS: &[OptionSpec] = &[
     OptionSpec { name: "--reverse", takes_value: false },
     OptionSpec { name: "--dump", takes_value: false },
     OptionSpec { name: "--details", takes_value: false },
+    OptionSpec { name: "--acquire", takes_value: false },
+    OptionSpec { name: "--json", takes_value: false },
 ];
 
 /// `scan devices` lists scanners without opening any (id, name, port, connection, `details:
@@ -971,8 +975,54 @@ fn ensure_scanning_supported() -> Result<(), CliError> {
     Err(format!("scan: {}", pdfcraft_platform::scan::ScanError::Unsupported).into())
 }
 
+/// `scan check`: report what the scan stack sees, without scanning. The device list is cheap (no
+/// device is opened); `--details` opens every device read-only and `--device TEXT` opens exactly one.
+/// `--acquire` (which needs `--device`) is the only part that moves the scanner: one 100 dpi page,
+/// reported as size, format and byte count, and saved only into `--out`. The report goes to stdout
+/// (`--json` for the machine form); exit status 1 means a device would not open or reported an error.
+fn scan_check(args: &[String]) -> Result<(), CliError> {
+    let mut options = pdfcraft_automation::ScanCheckOptions::default();
+    let mut json = false;
+    let mut index = 1;
+    while let Some(arg) = args.get(index) {
+        index += 1;
+        match arg.as_str() {
+            "--details" => options.details = true,
+            "--acquire" => options.acquire = true,
+            "--json" => json = true,
+            "--device" | "--out" => {
+                let value = args.get(index).filter(|value| !value.starts_with("--")).ok_or_else(|| format!("scan check: {arg} needs a value"))?;
+                index += 1;
+                if arg == "--device" {
+                    options.device = Some(value.clone());
+                } else {
+                    options.out = Some(PathBuf::from(value));
+                }
+            }
+            other => return Err(format!("scan check takes only --details, --device TEXT, --acquire, --out DIR, and --json (got {other})").into()),
+        }
+    }
+    let mut notice = |line: &str| eprintln!("pdfcraft-cli: {line}");
+    let check = pdfcraft_automation::scan_check(&options, &mut notice).map_err(|error| format!("scan check: {error}"))?;
+    if json {
+        let line = serde_json::to_string(&check.report).map_err(|error| format!("scan check: {error}"))?;
+        stdout_line(format_args!("{line}"))?;
+    } else {
+        stdout_line(format_args!("{}", pdfcraft_automation::render_check_text(&check.report).trim_end()))?;
+    }
+    if check.ok {
+        Ok(())
+    } else {
+        let count = check.report["problems"].as_array().map_or(0, Vec::len);
+        Err(format!("scan check: {count} problem(s) found").into())
+    }
+}
+
 fn scan(args: &[String]) -> Result<(), CliError> {
     validate_options("scan", args, SCAN_OPTIONS)?;
+    if args.first().map(String::as_str) == Some("check") {
+        return scan_check(args);
+    }
     if args.iter().any(|arg| arg == "devices") {
         let dump = args.iter().any(|arg| arg == "--dump");
         let details = args.iter().any(|arg| arg == "--details");
