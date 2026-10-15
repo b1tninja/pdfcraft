@@ -67,6 +67,7 @@ mod platform;
 mod state;
 mod tools;
 mod workflows;
+mod scan_ui;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use app::same_file;
@@ -439,6 +440,8 @@ pub struct PdfCraftApp {
     pub ocr_draft: ocr_ui::OcrDraft,
     pub ocr_run: Option<ocr_ui::OcrRun>,
     pub ocr_batch: Option<std::sync::Arc<std::sync::Mutex<ocr_ui::BatchProgress>>>,
+    /// Scan & OCR ▸ From scanner.
+    pub scan: scan_ui::ScanUi,
     /// Background jobs (OCR, actions, listing pinned folders) run inline instead (tests).
     pub run_inline: bool,
     /// Action Wizard: the user's actions, the dialog state, the running action and (tests) the

@@ -12,8 +12,8 @@ rust-version = "1.95"
 repository = "https://github.com/storytold/pdfcraft"
 
 [workspace.dependencies]
-# Shared frontend components; engines remain independent of egui.
-craft-ui = { git = "https://github.com/storytold/craft-libs", version = "0.1.0", rev = "edc41f68fa24c46651c3b5117d10f0ead75ec9cb", features = ["serde"] }
+# Shared frontend components (the scanning component is storytold/craft-libs#112); engines remain independent of egui.
+craft-ui = { git = "https://github.com/storytold/craft-libs", version = "0.1.0", rev = "refs/pull/112/head", features = ["serde"] }
 # Quit the macOS way (#1136): ⌘Q asks about unsaved changes, and closing quits through `terminate:`.
 craft-quit = { git = "https://github.com/storytold/craft-libs", version = "0.1.0", rev = "edc41f68fa24c46651c3b5117d10f0ead75ec9cb" }
 # One menu definition for the native macOS menu bar and the in-window bar elsewhere.
