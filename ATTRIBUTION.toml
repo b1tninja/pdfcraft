@@ -247,6 +247,7 @@ kind = "translation"
 usage = "Central Kurdish UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
 sha256 = "864db8aa0a5e443c92e7e388f89349eb0f0e7beda35a0b81695d864dcec51b72"
 sha256 = "c89058a21a30b75ce97a275727b3298222c85ba1446ce8900e3c93e5d6af43d9"
+sha256 = "d8eb2fc3d5e460cbf99524ac5704c651e9490d9b71c5eea83cec74f08fc6e7ae"
 
 [[asset]]
 path = "crates/ui-egui/src/i18n/tr.tsv"
@@ -3447,6 +3448,7 @@ licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Vietnamese UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
 sha256 = "57f0dd007ad16518fbc87d8aeac840ef6d86412bb460aff9fb17b176408fb7a8"
+sha256 = "92ac5ba8b28bc113867348549e80f7c8e0613df97e1f6f9718761c1424108d98"
 
 [[asset]]
 path = "crates/ui-egui/src/i18n/sl.tsv"
