@@ -499,6 +499,8 @@ pub struct PdfCraftApp {
     pub optimize_run: Option<optimize_ui::OptimizeRun>,
     /// A background job's progress card (see [`widgets::progress_notice`]).
     pub progress_notice: Option<widgets::ProgressNotice>,
+    /// Which job last wrote [`Self::progress_notice`], so Cancel stops that job and not another one that runs too.
+    pub progress_owner: widgets::ProgressOwner,
     /// Pages copied or cut in Organize Pages, ready to paste (into any document).
     pub page_clipboard: Option<PageClip>,
     /// Files dropped on the page grid, waiting for the pointer to say which gap they go to.

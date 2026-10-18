@@ -181,6 +181,7 @@ impl PdfCraftApp {
             optimize_draft: OptimizeDraft::default(),
             optimize_run: None,
             progress_notice: None,
+            progress_owner: widgets::ProgressOwner::default(),
             page_clipboard: None,
             grid_drop: None,
             last_snapshot: None,
