@@ -145,6 +145,7 @@ impl McpServer {
         })
     }
 
+    /// Answer one JSON-RPC method with its result, or with an error as `(code, message)`.
     fn dispatch(&mut self, method: &str, params: &Value) -> Result<Value, (i64, String)> {
         match method {
             "initialize" => {
