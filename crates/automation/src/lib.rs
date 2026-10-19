@@ -192,6 +192,7 @@ impl Automation {
         &self.session
     }
 
+    /// The session's open documents, for the caller to change directly.
     pub fn session_mut(&mut self) -> &mut Session {
         &mut self.session
     }
