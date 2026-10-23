@@ -18,7 +18,6 @@ pdfcraft-print = { workspace = true }
 serde_json = { workspace = true }
 sha2 = "0.11"
 tempfile = "3.27"
-png = "0.18"
 base64 = { version = "0.22", optional = true }
 
 
@@ -35,7 +34,11 @@ network-print = ["pdfcraft-print/network-print"]
 # The in-memory fake WS-Print printer and the loopback server (`craft_print::wsd::testing`): tests only.
 craft-print = { workspace = true, features = ["wsd", "testing"] }
 pdfcraft-fonts = { workspace = true }
+png = "0.18"
 flate2.workspace = true
 pdfcraft-model = { workspace = true }
 pdfcraft-xfa = { workspace = true }
 image = { version = "0.25", default-features = false, features = ["jpeg"] }
+
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+rustix = { version = "1", features = ["fs"] }
