@@ -2753,7 +2753,7 @@ status = "partial"
 commands = ["scan.acquire"]
 tools = []
 evidence = [
-  "crates/ui-egui/tests/commands.rs::scan_acquire_opens_the_scanner_dialog",
+  "crates/ui-egui/tests/it/commands.rs::scan_acquire_opens_the_scanner_dialog",
 ]
 notes = "Organize pages ▸ From scanner… (and Scan & OCR ▸ From scanner…) opens the scanner dialog; Insert scanned pages streams into the open document after the selection. Windows WIA only; TWAIN / ICA / SANE still open."
 
@@ -6776,9 +6776,10 @@ status = "partial"
 commands = ["scan.acquire"]
 tools = ["scan_devices", "scan_acquire", "scan_jobs"]
 evidence = [
-  "crates/automation/tests/automation.rs::scan_devices_is_read_only_and_lists_without_feeding_paper",
+  "crates/automation/tests/it/automation.rs::scan_devices_is_read_only_and_lists_without_feeding_paper",
   "apps/pdfcraft-cli/src/scan_cmd.rs::a_jam_keeps_the_pages_and_continue_append_scans_only_the_rest",
-  "crates/automation/src/scan_jobs.rs::the_journal_round_trips_through_an_atomic_write",
+  "apps/pdfcraft-cli/tests/scan_jobs.rs::jobs_lists_one_line_per_journal_and_json_for_machines",
+  "apps/pdfcraft-cli/tests/scan_jobs.rs::a_newer_journal_version_is_refused_with_a_clear_message",
   "crates/automation/src/scanning.rs::the_unsupported_backend_reports_windows_only_for_listing_and_acquire",
   "crates/automation/src/scanning.rs::check_acquire_needs_a_device_and_touches_nothing_without_one",
   "apps/pdfcraft-cli/tests/scan_check.rs::acquire_without_a_device_is_refused_and_prints_nothing",
