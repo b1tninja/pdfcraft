@@ -2938,3 +2938,6 @@ theme	Appearance	Aparência
 	The same printer is also available over the network.	A mesma impressora também está disponível pela rede.
 # Machine-drafted row for native-speaker review (scanner dialog without a backend, 2026-10-13).
 	Scanning needs Windows (WIA) in this version.	A digitalização requer o Windows (WIA) nesta versão.
+	The reverse sides were cancelled: their document was closed.	Os versos foram cancelados: o documento foi fechado.
+# Untranslated: English text until a translator fills this in.
+	The scan was stopped: its document was closed.	The scan was stopped: its document was closed.
