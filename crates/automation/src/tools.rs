@@ -1264,7 +1264,7 @@ pub fn tools() -> Vec<ToolDef> {
         t(
             "scan_acquire",
             "Acquire scanner pages",
-            "Pull pages from a connected scanner into a folder (Windows WIA). Same options as pdfcraft-cli scan. On a partial stack (jam/offline), saved pages stay on disk and the result includes partial=true, error, and error_info (kind, phase, hresult, code_name, retryable, resumable, message). A failure with no pages is a tool error whose structuredContent is that same error_info.",
+            "Pull pages from a connected scanner into a folder (Windows WIA). Takes only the options in this schema (out, device, source, pages, dpi, dpi_y, color, format, duplex, page_size, page_length), a subset of what pdfcraft-cli scan accepts. On a partial stack (jam/offline), saved pages stay on disk and the result includes partial=true, error, and error_info (kind, phase, hresult, code_name, retryable, resumable, message). A failure with no pages is a tool error whose structuredContent is that same error_info.",
         )
         .destructive()
         .with(schema(
@@ -1286,7 +1286,7 @@ pub fn tools() -> Vec<ToolDef> {
         t(
             "scan_jobs",
             "List or show scan jobs",
-            "Read-only: the journals (scan-job.json) that pdfcraft-cli scan and scan_acquire-style runs leave in a scan output folder. By default lists the jobs found in dir (default: the root) and its immediate subfolders: id, state, pages kept and wanted, attempts, last error kind, updated, folder, and a note when the page files on disk do not match the journal. With show=true, returns the one job in dir in full (request, journal, job view, attempt timeline, exit class). Never opens a scanner and never moves paper. To continue a job use pdfcraft-cli scan --continue DIR.",
+            "Read-only: the journals (scan-job.json) that pdfcraft-cli scan leaves in a scan output folder. By default lists the jobs found in dir (default: the root) and its immediate subfolders: id, state, pages kept and wanted, attempts, last error kind, updated, folder, and a note when the page files on disk do not match the journal. With show=true, returns the one job in dir in full (request, journal, job view, attempt timeline, exit class). Never opens a scanner and never moves paper. To continue a job use pdfcraft-cli scan --continue DIR.",
         )
         .ro()
         .with(schema(
