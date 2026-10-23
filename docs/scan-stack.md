@@ -102,7 +102,7 @@ job as an unknown outcome: look at the scanner, then `scan --continue DIR --appe
 its `request`. When pages are kept it asks you to choose: `--append` scans only the remaining count, `--restart` moves the kept page
 files to `DIR/discarded-N` first (nothing is deleted) and scans everything again. A job in `needs_attention` is refused until
 `--i-checked-the-scanner` is given, because a duplicate acquire moves the carriage and pulls paper; the job never decides that for you.
-A completed whole-feeder job takes `--append` for another feeder load of sheets, and any completed job takes `--reverse` to scan its
+A completed whole-feeder job takes `--append` for another feeder load of sheets, and a completed single-sided job (one the scanner's duplex unit did not scan) takes `--reverse` to scan its
 backs: it becomes one job of twice the pages, continued with `ScanJob::continuing` and `Continuation::Append` like any other, going
 down the flipped stack (see `manual_duplex` above).
 
