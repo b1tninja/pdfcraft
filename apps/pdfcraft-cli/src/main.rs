@@ -617,11 +617,9 @@ fn option_value<'a>(args: &'a [String], name: &str) -> Result<Option<&'a str>, C
 mod tests {
     #[test]
     fn scanning_reports_one_line_where_there_is_no_backend() {
-        let answer = super::ensure_scanning_supported();
-        if pdfcraft_platform::scan::supported() {
-            assert!(answer.is_ok());
-        } else {
-            assert_eq!(answer.unwrap_err().to_string(), "scan: scanning is only supported on Windows (WIA) in this version");
+        match super::ensure_scanning_supported() {
+            Ok(()) => assert!(pdfcraft_platform::scan::supported(), "accepted a scan with no backend registered"),
+            Err(refusal) => assert_eq!(refusal.to_string(), "scan: scanning is only supported on Windows (WIA) in this version"),
         }
     }
 
