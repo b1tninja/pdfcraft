@@ -114,8 +114,8 @@ pdfcraft-cli scan   --continue DIR (--append | --restart | --reverse) --yes [--i
                       missing ones; --restart moves the kept page files to DIR/discarded-N and scans again; one is
                       required when pages are kept. A job that needs attention (outcome unknown) is refused until you
                       have looked at the scanner and add --i-checked-the-scanner: a repeated acquire moves the carriage
-                      and pulls paper
-                      a finished whole-feeder job: --append adds the next feeder load as more sheets; --reverse scans
+                      and pulls paper.
+                      For a finished whole-feeder job: --append adds the next feeder load as more sheets; --reverse scans
                       the backs (flip the whole stack first): one job, every page saved at its place (the back of
                       sheet i is page 2i), continued with --append for each further part of the flipped stack
 pdfcraft-cli tools                                       automation tools and their JSON Schemas
