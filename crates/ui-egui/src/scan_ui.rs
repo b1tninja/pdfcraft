@@ -3804,6 +3804,26 @@ mod tests {
         }
     }
 
+    #[test]
+    fn a_running_scans_progress_card_is_not_taken_by_another_job() {
+        use crate::widgets::{ProgressNotice, ProgressOwner};
+        let notice = |label: &str| ProgressNotice { label: label.into(), fraction: 0.5, cancellable: true };
+        let mut app = crate::PdfCraftApp::new();
+        app.scan.job = Some(test_job(ScanKind::Create, 0, Some(3)));
+        app.show_job_progress(ProgressOwner::Scan, notice("Scanning…"));
+        // An optimize that polls meanwhile does not take the card, so Stop still reaches the scan.
+        app.show_job_progress(ProgressOwner::Optimize, notice("Optimizing…"));
+        assert_eq!(app.progress_notice.as_ref().map(|p| p.label.as_str()), Some("Scanning…"));
+        assert_eq!(app.progress_owner, ProgressOwner::Scan);
+        // The same job refreshes its own card.
+        app.show_job_progress(ProgressOwner::Scan, notice("Scanning page 2…"));
+        assert_eq!(app.progress_notice.as_ref().map(|p| p.label.as_str()), Some("Scanning page 2…"));
+        // Once the scan is over the card is free for the other job.
+        app.scan.job = None;
+        app.show_job_progress(ProgressOwner::Optimize, notice("Optimizing…"));
+        assert_eq!(app.progress_owner, ProgressOwner::Optimize);
+    }
+
     /// Give the job a failed result with `error`, make it the app's current job and poll it.
     fn finish_with(app: &mut crate::PdfCraftApp, job: super::ScanJob, error: &str) {
         if let Ok(mut slot) = job.progress.lock() {
