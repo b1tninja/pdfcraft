@@ -43,7 +43,7 @@ The From scanner… dialog works the same way (on a platform without a backend i
 background thread. If that fails, the engine's sentence is shown with Try again, and Scan still
 works with conservative defaults.
 Each device in the list carries a connection tag (USB, or Network for WSD; none when unknown). When
-one printer is listed twice under the same name (a trailing ` [..]` id is ignored) over USB and the
+one scanner is listed twice under the same name (a trailing ` [..]` id is ignored) over USB and the
 network, each entry's tooltip says so, and with no remembered scanner the USB entry is selected first.
 A remembered scanner is always kept.
 Acquire (`pdfcraft-cli scan`, UI **Scan & OCR ▸ From scanner…**) transfers pages in memory;
