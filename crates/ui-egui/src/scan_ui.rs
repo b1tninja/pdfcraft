@@ -639,7 +639,7 @@ fn devices_block(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens, busy: boo
     app.scan.devices.state.set_warnings(warnings);
     let mut response = shared::Response::default();
     ui.add_enabled_ui(!busy, |ui| {
-        response = app.scan.devices.state.show(ui, egui::Id::new("scan-devices"), &labels, &discover, &load);
+        response = app.scan.devices.state.show(ui, egui::Id::unique("scan-devices"), &labels, &discover, &load);
     });
     let after = app.scan.devices.state.settings.clone();
     if pull_settings(&mut app.scan.draft, &after) {
@@ -1378,7 +1378,7 @@ fn advanced_modal(ctx: &egui::Context, app: &mut PdfCraftApp, t: &Tokens, busy: 
     };
     let mut close = false;
     let mut apply = false;
-    egui::Modal::new(egui::Id::new("scan-advanced")).show(ctx, |ui| {
+    egui::Modal::new(egui::Id::unique("scan-advanced")).show(ctx, |ui| {
         ui.set_width(480.0);
         ui.label(egui::RichText::new(tl!("Scanner settings")).font(theme::semibold(16.0)));
         ui.label(
