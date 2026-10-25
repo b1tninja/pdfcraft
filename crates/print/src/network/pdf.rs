@@ -160,7 +160,8 @@ mod tests {
         assert!(super::retain(&mut total, 600, 1_000, 1).is_ok());
         let error = super::retain(&mut total, 600, 1_000, 2).unwrap_err();
         assert!(error.message().contains("page 2"), "{error}");
-        assert!(super::retain(&mut usize::MAX, 1, 1_000, 3).is_err(), "the count saturates instead of overflowing");
+        let mut full = usize::MAX;
+        assert!(super::retain(&mut full, 1, 1_000, 3).is_err(), "the count saturates instead of overflowing");
     }
 
     use super::*;
