@@ -16,6 +16,24 @@ fn failed(why: impl Into<String>) -> PrintError {
     PrintError::new(ErrorKind::Failed, why)
 }
 
+/// The most raster a job may hold at once. `pwg::encode` takes every page together, so the whole
+/// document is in memory until craft-print has a per-page encoder; past this the job is refused
+/// with a clear error rather than exhausting memory (1 GiB is about 40 Letter pages of RGB at
+/// 300 dpi, or 10 at 600 dpi).
+const MAX_RETAINED_BYTES: usize = 1 << 30;
+
+/// Counts `add` bytes of a rendered page against `limit`; an error once the total would pass it.
+fn retain(total: &mut usize, add: usize, limit: usize, number: usize) -> Result<(), PrintError> {
+    *total = total.saturating_add(add);
+    if *total > limit {
+        return Err(failed(format!(
+            "the document is too large to print as raster: page {number} would take it past {} MiB; print it at a lower resolution or in parts",
+            limit >> 20
+        )));
+    }
+    Ok(())
+}
+
 /// PDF to PWG raster. Stateless: register one with [`super::register_pdf_converter`].
 #[derive(Clone, Copy, Debug, Default)]
 pub struct PdfToRaster;
@@ -41,11 +59,14 @@ impl DocumentConverter for PdfToRaster {
             return Err(failed("the document has no pages that can be rendered"));
         }
         let mut pages = Vec::with_capacity(sizes.len());
+        let mut retained = 0usize;
         for (index, &(w, h)) in sizes.iter().enumerate() {
             if context.cancel.is_cancelled() {
                 return Err(PrintError::new(ErrorKind::Cancelled, "the print job was cancelled while the document was rendered"));
             }
-            pages.push(render_page(&mut renderer, index, (w, h), (dx, dy), gray)?);
+            let page = render_page(&mut renderer, index, (w, h), (dx, dy), gray)?;
+            retain(&mut retained, page.pixels.len(), MAX_RETAINED_BYTES, index + 1)?;
+            pages.push(page);
         }
         let duplex = match context.duplex {
             None | Some(Duplex::Off) => pwg::Duplex::Off,
@@ -133,6 +154,15 @@ fn flatten(rgba: &[u8], gray: bool) -> Vec<u8> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn retained_raster_past_the_limit_is_a_clear_error() {
+        let mut total = 0;
+        assert!(super::retain(&mut total, 600, 1_000, 1).is_ok());
+        let error = super::retain(&mut total, 600, 1_000, 2).unwrap_err();
+        assert!(error.message().contains("page 2"), "{error}");
+        assert!(super::retain(&mut usize::MAX, 1, 1_000, 3).is_err(), "the count saturates instead of overflowing");
+    }
+
     use super::*;
 
     #[test]
