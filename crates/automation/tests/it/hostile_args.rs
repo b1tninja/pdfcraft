@@ -173,11 +173,15 @@ fn plausible(def: &pdfcraft_automation::ToolDef) -> serde_json::Map<String, Valu
 }
 
 /// Run `call`, turning a panic into a message instead of unwinding out of the test.
-/// The scan tools reach the system's scanners (a listing, or a real scan). They stay out of the
-/// hostile sweeps unless the machine's scanners may be touched.
+/// The scan tools that reach the system's scanners (a listing, or a real scan) stay out of the hostile sweeps
+/// unless the machine's scanners may be touched. `scan_jobs` only reads journals, so it is swept like any other tool.
 fn touches_scanners(tool: &str) -> bool {
     // A real acquire pulls paper on every call: never part of a sweep.
-    tool == "scan_acquire" || (tool.starts_with("scan_") && std::env::var_os("PDFCRAFT_TEST_REAL_SCANNERS").is_none())
+    match tool {
+        "scan_acquire" => true,
+        "scan_devices" => std::env::var_os("PDFCRAFT_TEST_REAL_SCANNERS").is_none(),
+        _ => false,
+    }
 }
 
 /// Call `tool` with `args`; any `ToolError` is accepted (the caller was told what was wrong), a panic is an `Err`.

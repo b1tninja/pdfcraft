@@ -120,4 +120,4 @@ Use the operating system's scheduler (Task Scheduler on Windows, cron elsewhere)
   same command again, or `--continue` in a script, pulls more paper through a scanner that may already have moved. A scripted
   `--continue` is only safe for a job in the `interrupted` state (a cause a person cured, with pages kept and a choice made), and
   `--i-checked-the-scanner` should be given by a person, not by the schedule.
-- A scanner that is busy at the scheduled time is retried by the job itself (waiting, within a small budget); an empty feeder or a jam is not.
+- A scanner that is busy at the scheduled time is retried by the job itself (waiting, within a small budget). An explicitly chosen feeder that is empty or jammed is not retried by the job; with source Auto the acquisition may fall back to the glass once.
