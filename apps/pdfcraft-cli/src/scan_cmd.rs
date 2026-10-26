@@ -84,6 +84,18 @@ fn page_number(duplex: Option<ManualDuplex>, index: usize) -> usize {
     }
 }
 
+/// Create `path` (never over an existing file) and fill it with `write`. A write that fails leaves nothing behind: the
+/// partly written file would make `scan --continue` find a page file the journal does not keep.
+fn create_page_file(path: &Path, bytes: &[u8], write: impl FnOnce(&mut std::fs::File, &[u8]) -> std::io::Result<()>) -> Result<(), String> {
+    let mut file = std::fs::OpenOptions::new().write(true).create_new(true).open(path).map_err(|error| format!("{}: {error}", path.display()))?;
+    if let Err(error) = write(&mut file, bytes) {
+        drop(file);
+        let _ = std::fs::remove_file(path);
+        return Err(format!("{}: {error}", path.display()));
+    }
+    Ok(())
+}
+
 /// Write pages `*written..` of the job's held pages into the folder, never over an existing file. `base` is the
 /// number of pages the job kept before this run.
 fn flush_pages(
@@ -97,9 +109,7 @@ fn flush_pages(
     use std::io::Write;
     for (index, page) in job.pages().iter().enumerate().skip(*written) {
         let path = scan::page_path(folder, page_number(duplex, base + index), page.format);
-        let mut file =
-            std::fs::OpenOptions::new().write(true).create_new(true).open(&path).map_err(|error| format!("{}: {error}", path.display()))?;
-        file.write_all(&page.bytes).map_err(|error| format!("{}: {error}", path.display()))?;
+        create_page_file(&path, &page.bytes, |file, bytes| file.write_all(bytes))?;
         eprintln!("pdfcraft-cli: saved {}", path.display());
         let mut row = crate::page_json(&path, page);
         if let Some(duplex) = duplex {
@@ -522,6 +532,27 @@ mod tests {
     use super::*;
     use pdfcraft_platform::scan::Page;
     use pdfcraft_platform::scan::job::ScanJobJournal;
+
+    #[test]
+    fn a_page_file_whose_write_fails_is_removed() {
+        let dir = std::env::temp_dir().join(format!("pdfcraft-scan-partial-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("page-001.bmp");
+        let failed = create_page_file(&path, b"0123456789", |file, bytes| {
+            use std::io::Write;
+            file.write_all(&bytes[..4])?;
+            Err(std::io::Error::other("disk full"))
+        });
+        assert!(failed.unwrap_err().contains("disk full"));
+        assert!(!path.exists(), "a partly written page was left in the folder");
+        // A good write keeps the file, and an existing file is never written over.
+        create_page_file(&path, b"01234567", std::io::Write::write_all).unwrap();
+        assert_eq!(std::fs::read(&path).unwrap(), b"01234567");
+        assert!(create_page_file(&path, b"x", std::io::Write::write_all).is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), b"01234567");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     /// A journal record in `state` that holds `kept` saved 2x2 pages and asked for `expected` pages (None: all).
     fn record(state: ScanJobState, kept: usize, expected: Option<u32>) -> JobRecord {
