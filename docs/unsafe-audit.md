@@ -6,10 +6,11 @@ kind of it relies on, and how to review it. Everything not listed here is safe R
 
 ## Owner sign-off
 
-AGENTS.md section 4 says a real `unsafe` exception needs the owner's sign-off. The sign-off for this exception is
-not recorded yet: nobody has approved it in this repository, and this page does not claim that anyone has. When the
-owner approves it, record the approver and the date here, the way AGENTS.md does for
-`crates/fonts/src/std14_metrics.rs`. Until then this exception is awaiting approval.
+AGENTS.md section 4 says a real `unsafe` exception needs the owner's sign-off. This exception is approved by the
+owner, 2026-10-26: Windows scanners are reached through WIA, which is COM, and the COM calls cannot be made without
+`unsafe`. The approval covers what this page describes and no more: the 34 sites in `crates/scan-wia/src/ffi.rs` and
+`crates/scan-wia/src/sinks.rs`, each with a `// SAFETY:` comment. A new `unsafe` site, or `unsafe` in any other module or
+crate, needs its own sign-off and an update to this page.
 
 ## Why unsafe is needed
 
