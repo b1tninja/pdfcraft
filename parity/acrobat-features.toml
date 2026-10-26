@@ -2774,11 +2774,11 @@ tier = "P2"
 milestone = "M14"
 status = "partial"
 commands = ["scan.acquire"]
-tools = []
+tools = ["scan_acquire", "doc_create_multiple", "page_insert_file"]
 evidence = [
   "crates/ui-egui/tests/it/commands.rs::scan_acquire_opens_the_scanner_dialog",
 ]
-notes = "Organize pages ▸ From scanner… (and Scan & OCR ▸ From scanner…) opens the scanner dialog; Insert scanned pages streams into the open document after the selection. Windows WIA only; TWAIN / ICA / SANE still open."
+notes = "Organize pages ▸ From scanner… (and Scan & OCR ▸ From scanner…) opens the scanner dialog; Insert scanned pages streams into the open document after the selection. Windows WIA only; TWAIN / ICA / SANE still open. Headless there is no single scan-into-document tool: the route is scan_acquire (pages into a folder), doc_create_multiple (images to PDF) and page_insert_file (a PDF into an open document), composed by the caller; no test drives a scanner into a document end to end, and the evidence above is the dialog only."
 
 [[feature]]
 id = "organize.insert-from-web"
@@ -6843,12 +6843,12 @@ tier = "P2"
 milestone = "M14"
 status = "partial"
 commands = ["scan.acquire"]
-tools = []
+tools = ["scan_acquire"]
 evidence = [
   "crates/ui-egui/src/scan_ui.rs::text_ocr_picks_300_dpi_gray_and_clears_the_region",
   "crates/ui-egui/src/scan_ui.rs::color_document_photo_and_black_and_white_presets",
 ]
-notes = "From scanner… offers Text (300 dpi gray + text intent), Color document (300 dpi RGB + color intent), Black and white (300 dpi 1-bit + text intent and mid threshold), and Photo (600 dpi when listed, else 400/300, RGB + maximize-quality intent). Each button is shown only when the driver lists that colour. Brightness/contrast reset to neutral; the region is cleared. Saved named presets and auto-detect from a preview are still open."
+notes = "From scanner… offers Text (300 dpi gray + text intent), Color document (300 dpi RGB + color intent), Black and white (300 dpi 1-bit + text intent and mid threshold), and Photo (600 dpi when listed, else 400/300, RGB + maximize-quality intent). Each button is shown only when the driver lists that colour. Brightness/contrast reset to neutral; the region is cleared. Saved named presets and auto-detect from a preview are still open. Headless there are no named presets: scan_acquire takes the same settings a preset sets (resolution, color, intent, threshold, brightness, contrast, region), so a caller passes them itself; no test covers a preset by name outside the dialog."
 
 [[feature]]
 id = "ocr.scan-append"
@@ -6858,13 +6858,13 @@ tier = "P2"
 milestone = "M14"
 status = "partial"
 commands = ["scan.acquire"]
-tools = []
+tools = ["scan_acquire", "doc_create_multiple", "page_insert_file"]
 evidence = [
   "crates/ui-egui/src/scan_ui.rs::the_dialog_defaults_to_auto_300_dpi_gray",
   "crates/ui-egui/src/scan_ui.rs::create_file_names_and_remaining_capacity",
   "crates/ui-egui/src/scan_ui.rs::multiple_files_defaults_off",
 ]
-notes = "From scanner… Insert scanned pages adds finished pages to the open document after the selection (or the current page). Organize pages ▸ From scanner… opens the same dialog. Create PDF starts a new document; Multiple files + Pages per file opens Scan.pdf, Scan (2).pdf, … as each group fills. Missing: choosing a folder / filename prefix up front, and a PDF Portfolio of the split files."
+notes = "From scanner… Insert scanned pages adds finished pages to the open document after the selection (or the current page). Organize pages ▸ From scanner… opens the same dialog. Create PDF starts a new document; Multiple files + Pages per file opens Scan.pdf, Scan (2).pdf, … as each group fills. Missing: choosing a folder / filename prefix up front, and a PDF Portfolio of the split files. Headless: scan_acquire writes the pages to a folder, doc_create_multiple turns them into one PDF (mode combine) or one PDF per image (mode separate, the split), and page_insert_file appends or inserts a PDF into an open document, composed by the caller. No single tool does the append or the split during a scan, and no test chains them."
 
 [[feature]]
 id = "ocr.adobe-scan-sync"
