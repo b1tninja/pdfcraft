@@ -4,6 +4,13 @@ The workspace sets `unsafe_code = "forbid"`. There is one exception: the Windows
 `crates/scan-wia` (package `pdfcraft-wia`). This page says why, where the unsafe code is, what each
 kind of it relies on, and how to review it. Everything not listed here is safe Rust.
 
+## Owner sign-off
+
+AGENTS.md section 4 says a real `unsafe` exception needs the owner's sign-off. The sign-off for this exception is
+not recorded yet: nobody has approved it in this repository, and this page does not claim that anyone has. When the
+owner approves it, record the approver and the date here, the way AGENTS.md does for
+`crates/fonts/src/std14_metrics.rs`. Until then this exception is awaiting approval.
+
 ## Why unsafe is needed
 
 Windows scanners are reached through WIA, which is COM. The only maintained Rust binding is the
