@@ -64,10 +64,10 @@ mod app;
 mod hooks;
 mod persist;
 mod platform;
+mod scan_ui;
 mod state;
 mod tools;
 mod workflows;
-mod scan_ui;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use app::same_file;
