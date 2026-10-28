@@ -37,9 +37,11 @@ use pdfcraft_render::{PageRenderer, RenderConfig, RenderRequest, RequestKind, in
 macro_rules! mcp_usage {
     () => {
         "\
-pdfcraft-cli mcp    [--root DIR] [--compact] [--automation-read-root DIR] [--automation-write-root DIR]
+pdfcraft-cli mcp    [--root DIR] [--compact] [--allow-network-print] [--automation-read-root DIR] [--automation-write-root DIR]
                                                            MCP server on stdin/stdout (opt-in)
                                                            --compact lists a core set of tools plus tool_search and tool_call
+                                                           --allow-network-print lets the agent list and use wsd_printer_info and
+                                                           print_wsd (off by default; a job still needs user_confirmed)
                                                            --automation-read-root / --automation-write-root confine the files the
                                                            agent's tools read (open, combine, import, fonts, certificates…) and
                                                            write (save, export, extract, split, reports…) to DIR, links followed;

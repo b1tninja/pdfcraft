@@ -7,7 +7,12 @@
 //! printer accepted the document and the wait ran out or the printer cannot report. It never sends
 //! a document twice: a failure that may have reached the printer says so. Tests inject their own
 //! transport with `Automation::with_wsd_transport`. Without the `network-print` feature (and on
-//! wasm32) both tools refuse.
+//! wasm32) both tools refuse. An MCP server refuses them too, and does not list them, unless it was
+//! started with `--allow-network-print`: that is the user's setting, which no tool call can change.
+//! `user_confirmed` stays required on top of it.
+
+/// The tools that reach a network printer: off in an MCP server until its user opts in.
+pub(crate) const TOOLS: [&str; 2] = ["wsd_printer_info", "print_wsd"];
 
 #[cfg(not(all(feature = "network-print", not(target_arch = "wasm32"))))]
 mod off {
@@ -55,6 +60,8 @@ mod on {
         ToolError::InvalidArgs(m.into())
     }
 
+    const NOT_ALLOWED: &str = "network printing is off for this MCP server: the user has to start it with `pdfcraft-cli mcp --allow-network-print`";
+
     /// A refusal the caller can fix (an address, a setting, the missing confirmation) is an argument
     /// error; the rest failed. A failure that may have reached the printer says to check it first.
     fn print_err(e: PrintError) -> ToolError {
@@ -72,11 +79,16 @@ mod on {
             self
         }
 
+        fn network_print_gate(&self) -> Result<()> {
+            if self.network_print_allowed() { Ok(()) } else { Err(failed(NOT_ALLOWED)) }
+        }
+
         fn wsd_printer(&self, url: &str, settings: Settings) -> Result<Printer> {
             Printer::open_with(url, self.wsd.clone(), settings).map_err(print_err)
         }
 
         pub(crate) fn wsd_printer_info(&self, a: &Args) -> Result<Value> {
+            self.network_print_gate()?;
             let printer = self.wsd_printer(a.str("printer_url")?, Settings::default())?;
             let info = printer.info().map_err(print_err)?;
             let mut out = json!({ "printer_url": printer.address(), "invalid_sections": info.invalid });
@@ -108,6 +120,7 @@ mod on {
         }
 
         pub(crate) fn print_wsd(&mut self, a: &Args) -> Result<Value> {
+            self.network_print_gate()?;
             // The person's yes comes first: nothing else is looked at, let alone sent, without it.
             let confirmed = UserConfirmed::attest(a.opt_bool("user_confirmed")?).map_err(print_err)?;
             let (settings, job, mut options, wait) = print_options(a)?;
