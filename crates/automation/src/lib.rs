@@ -153,6 +153,7 @@ impl Automation {
         self
     }
 
+    #[cfg(any(feature = "mcp", all(feature = "network-print", not(target_arch = "wasm32"))))]
     pub(crate) fn network_print_allowed(&self) -> bool {
         self.network_print
     }

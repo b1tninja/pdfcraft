@@ -12,6 +12,7 @@
 //! `user_confirmed` stays required on top of it.
 
 /// The tools that reach a network printer: off in an MCP server until its user opts in.
+#[cfg(feature = "mcp")]
 pub(crate) const TOOLS: [&str; 2] = ["wsd_printer_info", "print_wsd"];
 
 #[cfg(not(all(feature = "network-print", not(target_arch = "wasm32"))))]
