@@ -71,6 +71,22 @@ callback transfer. Whole-stack feeder jobs may need a large ticket page cap when
 `IPS_PAGES = 0` to a single sheet. `FEED_READY` is unreliable on some WSD stacks; acquire may
 continue when the port is WSD and a multi-page job was requested.
 
+**One scanner, several entries:** Windows can list the same network scanner once per driver: the
+maker's own WIA driver (a Brother DCP-J105 shows two, `LAN` and `LAN #2`, port `AUTO`) and the inbox
+WSD one (`[wsd]`). They can differ. Measured on the DCP-J105 from the glass: the Brother driver
+offers 100 to 1200 dpi in black and white, grey and colour and scans the whole bed, while WSD offers
+100, 200 and 300 dpi in colour only, and returns 290.7 mm of an A4 page's 297 mm, whatever vertical
+extent it accepts. Windows' own WIA automation gets the same 2480 x 3433 pixels at 300 dpi, so the
+clipping is the WSD driver's. The backend logs a page that comes back more than 1/20 in short of the
+page size (`page_length_short` in `CRAFT_SCAN_TRACE`); the page's `length` record keeps the real length.
+Prefer the maker's driver where both are listed.
+
+**Flatbed-only scanners:** when the document-handling capabilities are read and lack the feeder bit,
+the scanner has no feeder: its one transfer item is never lent to the feeder (no feeder choices in
+`scan devices`, Feeder disabled in the dialog), and `--source feeder` stops at once with "this scanner
+has no feeder; scan from the glass" instead of "the feeder is empty". The same holds for a
+feeder-only scanner and the glass. A capabilities read that fails rules nothing out.
+
 **Duplex:** hardware duplex is `ScanSettings.duplex` (`FEEDER|DUPLEX`). Manual duplex is two
 feeder passes: in the CLI one job, `scan --continue DIR --reverse` after the fronts (each pass may take several feeder loads; every
 page is written to its place as it arrives, see [cli.md](cli.md)); the dialog uses `interleave_manual_duplex`. In the scan dialog (UI **Reverse sides**)
