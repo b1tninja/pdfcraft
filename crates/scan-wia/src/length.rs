@@ -175,6 +175,27 @@ pub struct Request {
     pub feeder: bool,
 }
 
+/// The width in pixels at `dpi` to scan for `size`: the size's width when it is narrower than `width_px` (the
+/// driver's own extent, usually the whole bed), else `width_px`. A size that names no width (`Auto`, `Custom`)
+/// or none at all leaves it. Some drivers take a page size into their list without changing the extent, so the
+/// width the user asked for is applied here; the scan never grows past what the driver offers.
+pub fn width_for_size(width_px: u32, size: Option<PageSize>, dpi: u32) -> u32 {
+    match size.and_then(PageSize::extent_mils) {
+        Some((width_mils, _)) => width_px.min(rows_for_mils(width_mils, dpi)),
+        None => width_px,
+    }
+}
+
+/// How far short, in thousandths of an inch, a delivered page of `delivered_rows` is of the `requested_rows` the
+/// extents asked for at `dpi_y`, when that is more than 1/20 in (rounding of the extent is a few rows). `None` when it
+/// is long enough or `dpi_y` is 0. Some drivers clip the length whatever extent they accept (the inbox WSD driver
+/// with a Brother DCP-J105 returns 290.7 mm for A4's 297 mm); the backend says so rather than staying silent.
+pub fn short_of_size(delivered_rows: u32, requested_rows: u32, dpi_y: u32) -> Option<u32> {
+    const SLACK_MILS: u32 = 50;
+    let missing = mils_of(requested_rows.checked_sub(delivered_rows)?, dpi_y)?;
+    (missing > SLACK_MILS).then_some(missing)
+}
+
 /// What to do about the length.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Action {
@@ -426,6 +447,37 @@ mod tests {
         // A custom length is any number of thousandths of an inch (here 5.5 in).
         assert_eq!(fit_height(5500, 200, Some(span(16, 2800))), Ok(1100));
         assert_eq!(fit_height(5500, 150, None), Ok(825));
+    }
+
+    #[test]
+    fn a_page_more_than_a_twentieth_of_an_inch_short_of_the_size_says_by_how_much() {
+        // The Brother DCP-J105 over WSD: 3433 rows of the 3508 that A4 asks for at 300 dpi (0.25 in short).
+        assert_eq!(short_of_size(3433, 3508, 300), Some(250));
+        // Rounding of the extent (a few rows) is not a shortfall.
+        assert_eq!(short_of_size(3500, 3508, 300), None);
+        assert_eq!(short_of_size(3508, 3508, 300), None);
+        assert_eq!(short_of_size(3600, 3508, 300), None);
+        // Exactly 1/20 in short is still within the slack; one row more is not.
+        assert_eq!(short_of_size(3493, 3508, 300), None);
+        assert_eq!(short_of_size(3492, 3508, 300), Some(53));
+        assert_eq!(short_of_size(0, 3508, 0), None);
+    }
+
+    #[test]
+    fn a_page_size_narrows_the_scan_to_its_width_and_never_widens_it() {
+        // A Brother DCP-J105 reports its 8.50 in bed as the extent; A4 is 8.27 in wide.
+        assert_eq!(width_for_size(2550, Some(PageSize::A4), 300), 2480);
+        assert_eq!(width_for_size(850, Some(PageSize::A4), 100), 827);
+        assert_eq!(width_for_size(5100, Some(PageSize::A4), 600), 4960);
+        assert_eq!(width_for_size(2550, Some(PageSize::BusinessCard), 300), 1063);
+        // As wide as the bed or wider: the bed stands.
+        assert_eq!(width_for_size(2550, Some(PageSize::Letter), 300), 2550);
+        assert_eq!(width_for_size(2550, Some(PageSize::Legal), 300), 2550);
+        assert_eq!(width_for_size(2400, Some(PageSize::Letter), 300), 2400);
+        // No size, or one that names no width: the driver's width stands.
+        assert_eq!(width_for_size(2550, None, 300), 2550);
+        assert_eq!(width_for_size(2550, Some(PageSize::Auto), 300), 2550);
+        assert_eq!(width_for_size(2550, Some(PageSize::Custom), 300), 2550);
     }
 
     #[test]

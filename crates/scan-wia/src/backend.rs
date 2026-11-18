@@ -662,6 +662,10 @@ fn acquire_pages(settings: &ScanSettings, route: &Cell<Option<(Source, bool)>>) 
     write_i4_if_needed(&item, WIA_IPS_XRES, dpi_x, wsd_port)?;
     write_i4_if_needed(&item, WIA_IPS_YRES, dpi_y_i, wsd_port)?;
     let mut frame = frame;
+    if settings.region.is_none() {
+        // The page size's width, when the driver kept its wider extent (an explicit region already says the width).
+        frame.width = length::width_for_size(frame.width, settings.page_size, settings.dpi);
+    }
     let mut inferring = false;
     if frame.width > 0 && frame.height > 0 {
         let y_span = choice_span(&item, WIA_IPS_YEXTENT);
@@ -699,6 +703,8 @@ fn acquire_pages(settings: &ScanSettings, route: &Cell<Option<(Source, bool)>>) 
         write_i4(&item, WIA_IPS_YEXTENT, as_i32(frame.height)?)?;
         (frame.width, frame.height)
     };
+    // The rows a page size asked for, to say when the driver delivers a shorter page anyway.
+    let size_rows = (length_source == LengthSource::Size && y > 0).then_some(y);
     require_color(&item, settings.color)?;
     if wsd_port {
         write_i4_soft(&item, WIA_IPA_DATATYPE, settings.color.data_type())?;
@@ -952,7 +958,30 @@ fn acquire_pages(settings: &ScanSettings, route: &Cell<Option<(Source, bool)>>) 
     if pages.is_empty() {
         return Err(ScanError::Failed("the scanner transferred no pages".into()));
     }
+    if let Some(requested) = size_rows {
+        say_short_pages(&pages, requested, dpi_y, &trace);
+    }
     Ok(Acquired { source, pages })
+}
+
+/// Logs (and traces) every page that came back more than 1/20 in shorter than the page size's `requested` rows:
+/// the extent was accepted, but the driver clipped the length (the page's `length` record keeps the real one).
+fn say_short_pages(pages: &[Page], requested: u32, dpi_y: u32, trace: &craft_scan::trace::AcquireTrace) {
+    for (index, page) in pages.iter().enumerate() {
+        let Some(missing) = length::short_of_size(page.height, requested, dpi_y) else { continue };
+        let mm = |mils: u32| f64::from(mils) * 0.0254;
+        log::warn!(
+            "scan: page {} is {:.1} mm shorter than the page size asked for; the driver clipped it (another driver for this scanner may scan the whole length)",
+            index + 1,
+            mm(missing)
+        );
+        if trace.enabled() {
+            trace.phase(
+                "page_length_short",
+                &[("index", &index.to_string()), ("requested_rows", &requested.to_string()), ("missing_mils", &missing.to_string())],
+            );
+        }
+    }
 }
 
 struct CancelTransferClear(Option<CancelToken>);

@@ -38,6 +38,12 @@ journal) choose what to do, in this priority order. `craft-scan`'s README has th
 An explicit region (`--left/--top/--width/--height`) wins over every mode: it already says which area to scan. `--page-size custom` and
 `auto` name no length. Width is never changed by the length policy.
 
+**Width.** A `--page-size` that names a width (`a4`, `letter`, `legal`, `business-card`) narrows the scan to that width
+from the scanner's origin, in every `--page-length` mode, when no region is given (`pdfcraft_wia::length::width_for_size`).
+It never widens the scan past the driver's own extent. This matters for drivers that take a page size into their list
+but keep their whole-bed extent: the Brother DCP-J105 returned 8.50 in for `--page-size a4` before this, and returns
+A4's 8.27 in now.
+
 **How inference decides** (`craft_scan::infer_sheet_end`): the scanner that was measured fills everything beyond the sheet end with pure
 white (255,255,255) while the paper itself carries scanner noise. The last row that is not pure white is the sheet end (plus a 0.01 in
 margin). The rule refuses unless the rows above the end show that noise, so a white margin that is exactly 255 everywhere is not mistaken
