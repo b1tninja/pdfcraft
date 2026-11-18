@@ -42,6 +42,25 @@ mod windows_rules {
     }
 
     #[test]
+    fn a_source_the_read_capabilities_lack_is_absent_and_unread_capabilities_rule_nothing_out() {
+        // A flatbed-only scanner (Brother DCP-J105: only the flatbed bit) has no feeder, so its single
+        // transfer item must not stand in for one.
+        assert!(rules::source_absent(Source::Feeder, Some(0x2)));
+        assert!(!rules::source_absent(Source::Glass, Some(0x2)));
+        // A feeder-only scanner has no glass.
+        assert!(rules::source_absent(Source::Glass, Some(0x1)));
+        assert!(!rules::source_absent(Source::Feeder, Some(0x1)));
+        // Both, or duplex on top: nothing is absent.
+        assert!(!rules::source_absent(Source::Feeder, Some(0x7)) && !rules::source_absent(Source::Glass, Some(0x7)));
+        // A failed read says nothing: no source is ruled out, the scanner decides.
+        assert!(!rules::source_absent(Source::Feeder, None) && !rules::source_absent(Source::Glass, None));
+        // Auto is never a source a scanner lacks; it is resolved first.
+        assert!(!rules::source_absent(Source::Auto, Some(0)));
+        assert_eq!(rules::absent_source_message(Source::Feeder), "this scanner has no feeder; scan from the glass");
+        assert_eq!(rules::absent_source_message(Source::Glass), "this scanner has no glass; scan from the feeder");
+    }
+
+    #[test]
     fn handling_bits_name_feeder_glass_and_duplex() {
         assert_eq!(rules::handling_caps(3), (true, true, false));
         assert_eq!(rules::handling_caps(7), (true, true, true));

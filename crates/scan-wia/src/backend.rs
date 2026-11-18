@@ -153,7 +153,8 @@ fn read_scanner(mgr: &IWiaDevMgr2, id: &str, name: &str) -> Result<Scanner, Scan
     let caps_read = read_i4(&root, WIA_DPS_DOCUMENT_HANDLING_CAPABILITIES);
     // Only an answered read lets `feeder`/`flatbed`/`duplex` = false mean "absent"; a failed read stays Unknown.
     let units_read = caps_read.is_ok();
-    let caps = caps_read.unwrap_or(0);
+    let caps_known = caps_read.ok();
+    let caps = caps_known.unwrap_or(0);
     let status_read = read_i4(&root, WIA_DPS_DOCUMENT_HANDLING_STATUS).ok();
     let mut handling_status = rules::status_from_read(status_read);
     let (feeder, flatbed, duplex) = handling_caps(caps);
@@ -168,8 +169,9 @@ fn read_scanner(mgr: &IWiaDevMgr2, id: &str, name: &str) -> Result<Scanner, Scan
     handling_status.feeder_ready = feeder_ready;
     // WIA 2.0 keeps the optical resolution, the page range and the maximum scan area on the
     // transfer items (the root has only the handling bits); a WIA 1.0 style root is the fallback.
-    let glass_item = scan_item(&device, Source::Glass).ok();
-    let feeder_item = scan_item(&device, Source::Feeder).ok();
+    // A source the read capabilities lack has no item, even when a lone transfer item would stand in for it.
+    let glass_item = if rules::source_absent(Source::Glass, caps_known) { None } else { scan_item(&device, Source::Glass).ok() };
+    let feeder_item = if rules::source_absent(Source::Feeder, caps_known) { None } else { scan_item(&device, Source::Feeder).ok() };
     let glass_props = glass_item.as_ref().and_then(|item| properties(item).ok());
     let feeder_props = feeder_item.as_ref().and_then(|item| properties(item).ok());
     let optical = |id: u32| {
@@ -482,9 +484,9 @@ fn acquire_pages(settings: &ScanSettings, route: &Cell<Option<(Source, bool)>>) 
         let wsd = port_name.as_deref().map(Connection::from_port) == Some(Connection::Wsd)
             || settings.device.to_ascii_lowercase().contains("wsd")
             || dev_name.to_ascii_lowercase().contains("wsd");
-        (read_i4(&root, WIA_DPS_DOCUMENT_HANDLING_CAPABILITIES).unwrap_or(0), read_i4(&root, WIA_DPS_DOCUMENT_HANDLING_STATUS).ok(), wsd)
+        (read_i4(&root, WIA_DPS_DOCUMENT_HANDLING_CAPABILITIES).ok(), read_i4(&root, WIA_DPS_DOCUMENT_HANDLING_STATUS).ok(), wsd)
     };
-    let (has_feeder, has_glass, duplex_cap) = handling_caps(root_caps);
+    let (has_feeder, has_glass, duplex_cap) = handling_caps(root_caps.unwrap_or(0));
     let handling_status = rules::status_from_read(status_bits);
     if trace.enabled() {
         trace.status("probe", handling_status);
@@ -498,6 +500,10 @@ fn acquire_pages(settings: &ScanSettings, route: &Cell<Option<(Source, bool)>>) 
     let feeder_ready = feeder_ready_from_status(&handling_status, wsd_port);
     // Auto becomes feeder or glass from this status read before any transfer.
     let source = settings.source.resolve(feeder_ready, has_feeder, has_glass)?;
+    // An explicit feeder or glass the scanner does not have is refused before anything moves.
+    if rules::source_absent(source, root_caps) {
+        return Err(ScanError::Failed(rules::absent_source_message(source).into()));
+    }
     route.set(Some((source, has_glass)));
     if let Some(progress) = &settings.progress {
         progress.set_source(source);
@@ -656,6 +662,10 @@ fn acquire_pages(settings: &ScanSettings, route: &Cell<Option<(Source, bool)>>) 
     write_i4_if_needed(&item, WIA_IPS_XRES, dpi_x, wsd_port)?;
     write_i4_if_needed(&item, WIA_IPS_YRES, dpi_y_i, wsd_port)?;
     let mut frame = frame;
+    if settings.region.is_none() {
+        // The page size's width, when the driver kept its wider extent (an explicit region already says the width).
+        frame.width = length::width_for_size(frame.width, settings.page_size, settings.dpi, wsd_port);
+    }
     let mut inferring = false;
     if frame.width > 0 && frame.height > 0 {
         let y_span = choice_span(&item, WIA_IPS_YEXTENT);
@@ -693,6 +703,8 @@ fn acquire_pages(settings: &ScanSettings, route: &Cell<Option<(Source, bool)>>) 
         write_i4(&item, WIA_IPS_YEXTENT, as_i32(frame.height)?)?;
         (frame.width, frame.height)
     };
+    // The rows a page size asked for, to say when the driver delivers a shorter page anyway.
+    let size_rows = (length_source == LengthSource::Size && y > 0).then_some(y);
     require_color(&item, settings.color)?;
     if wsd_port {
         write_i4_soft(&item, WIA_IPA_DATATYPE, settings.color.data_type())?;
@@ -946,7 +958,30 @@ fn acquire_pages(settings: &ScanSettings, route: &Cell<Option<(Source, bool)>>) 
     if pages.is_empty() {
         return Err(ScanError::Failed("the scanner transferred no pages".into()));
     }
+    if let Some(requested) = size_rows {
+        say_short_pages(&pages, requested, dpi_y, &trace);
+    }
     Ok(Acquired { source, pages })
+}
+
+/// Logs (and traces) every page that came back more than 1/20 in shorter than the page size's `requested` rows:
+/// the extent was accepted, but the driver clipped the length (the page's `length` record keeps the real one).
+fn say_short_pages(pages: &[Page], requested: u32, dpi_y: u32, trace: &craft_scan::trace::AcquireTrace) {
+    for (index, page) in pages.iter().enumerate() {
+        let Some(missing) = length::short_of_size(page.height, requested, dpi_y) else { continue };
+        let mm = |mils: u32| f64::from(mils) * 0.0254;
+        log::warn!(
+            "scan: page {} is {:.1} mm shorter than the page size asked for; the driver clipped it (another driver for this scanner may scan the whole length)",
+            index + 1,
+            mm(missing)
+        );
+        if trace.enabled() {
+            trace.phase(
+                "page_length_short",
+                &[("index", &index.to_string()), ("requested_rows", &requested.to_string()), ("missing_mils", &missing.to_string())],
+            );
+        }
+    }
 }
 
 struct CancelTransferClear(Option<CancelToken>);
