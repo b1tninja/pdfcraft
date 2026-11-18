@@ -231,6 +231,29 @@ pub fn handling_caps(bits: i32) -> (bool, bool, bool) {
     (bits & 0x1 != 0, bits & 0x2 != 0, bits & 0x4 != 0)
 }
 
+/// Whether the document-handling capabilities, when they were read, say the scanner lacks `source`. A failed read
+/// (`None`) rules nothing out, and `Auto` is never lacking. Without this a scanner with one transfer item (a
+/// flatbed-only model) lends that item to the feeder: its glass choices show as the feeder's, and a feeder scan
+/// runs on the glass and stops at "the feeder is empty".
+pub fn source_absent(source: Source, caps: Option<i32>) -> bool {
+    let Some(bits) = caps else { return false };
+    let (feeder, glass, _) = handling_caps(bits);
+    match source {
+        Source::Feeder => !feeder,
+        Source::Glass => !glass,
+        Source::Auto => false,
+    }
+}
+
+/// The sentence for a source [`source_absent`] ruled out, naming the one to use instead.
+pub fn absent_source_message(source: Source) -> &'static str {
+    match source {
+        Source::Feeder => "this scanner has no feeder; scan from the glass",
+        Source::Glass => "this scanner has no glass; scan from the feeder",
+        Source::Auto => "the scan source was not resolved",
+    }
+}
+
 /// WIA's wording for the status bits that block a scan.
 pub fn acquire_block_reason(status: HandlingStatus) -> Option<&'static str> {
     if status.jam {
