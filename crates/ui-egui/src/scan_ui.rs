@@ -1138,6 +1138,18 @@ fn unavailable_notice(supported: bool) -> Option<&'static str> {
     (!supported).then(|| tl!("Scanning needs Windows (WIA) in this version."))
 }
 
+/// What the dialog keeps around its scrolling part: the title, the duplex note, the button row, the window's
+/// margins and a gap to the window's edges.
+const SCAN_DIALOG_CHROME: f32 = 220.0;
+/// The scrolling part is never shorter than this, so a small window still shows the main settings at once.
+const SCAN_MIN_SCROLL: f32 = 520.0;
+
+/// The height the dialog's settings and preview may take in a window `window_height` tall: as much as the window
+/// leaves, so the preview of a whole page shows without scrolling where it fits.
+fn scroll_max_height(window_height: f32) -> f32 {
+    (window_height - SCAN_DIALOG_CHROME).max(SCAN_MIN_SCROLL)
+}
+
 /// The scanner dialog's content. Returns the button the user pressed; where scanning is not available it shows
 /// a notice and only offers Close.
 pub(crate) fn body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> ScanClick {
@@ -1189,7 +1201,7 @@ pub(crate) fn body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> Scan
         });
         ui.add_space(6.0);
     }
-    egui::ScrollArea::vertical().max_height(520.0).show(ui, |ui| {
+    egui::ScrollArea::vertical().max_height(scroll_max_height(ui.ctx().content_rect().height())).show(ui, |ui| {
         devices_block(ui, app, t, busy);
         let scanner = app.scan.devices.scanner_selected(&app.scan.draft.device);
         if let Some(scanner) = scanner.as_ref() {
@@ -3186,6 +3198,15 @@ mod tests {
     fn the_dialog_shows_a_notice_only_where_scanning_is_unsupported() {
         assert_eq!(super::unavailable_notice(true), None);
         assert_eq!(super::unavailable_notice(false), Some("Scanning needs Windows (WIA) in this version."));
+    }
+
+    /// In a 1009 px window the dialog used to stop at 520 px, hiding half of a page's preview.
+    #[test]
+    fn the_settings_and_preview_take_the_height_the_window_leaves_but_never_less_than_520() {
+        assert_eq!(super::scroll_max_height(1009.0), 789.0);
+        assert_eq!(super::scroll_max_height(1440.0), 1220.0);
+        assert_eq!(super::scroll_max_height(600.0), 520.0);
+        assert_eq!(super::scroll_max_height(0.0), 520.0);
     }
     use egui::Pos2;
     use pdfcraft_platform::scan::Source;
