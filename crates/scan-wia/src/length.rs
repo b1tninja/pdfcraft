@@ -178,8 +178,13 @@ pub struct Request {
 /// The width in pixels at `dpi` to scan for `size`: the size's width when it is narrower than `width_px` (the
 /// driver's own extent, usually the whole bed), else `width_px`. A size that names no width (`Auto`, `Custom`)
 /// or none at all leaves it. Some drivers take a page size into their list without changing the extent, so the
-/// width the user asked for is applied here; the scan never grows past what the driver offers.
-pub fn width_for_size(width_px: u32, size: Option<PageSize>, dpi: u32) -> u32 {
+/// width the user asked for is applied here; the scan never grows past what the driver offers. A WSD port (`wsd`)
+/// keeps `width_px`: the inbox WSD driver already returns the page's width from the whole extent, and narrows a
+/// written narrower extent again.
+pub fn width_for_size(width_px: u32, size: Option<PageSize>, dpi: u32, wsd: bool) -> u32 {
+    if wsd {
+        return width_px;
+    }
     match size.and_then(PageSize::extent_mils) {
         Some((width_mils, _)) => width_px.min(rows_for_mils(width_mils, dpi)),
         None => width_px,
@@ -466,18 +471,26 @@ mod tests {
     #[test]
     fn a_page_size_narrows_the_scan_to_its_width_and_never_widens_it() {
         // A Brother DCP-J105 reports its 8.50 in bed as the extent; A4 is 8.27 in wide.
-        assert_eq!(width_for_size(2550, Some(PageSize::A4), 300), 2480);
-        assert_eq!(width_for_size(850, Some(PageSize::A4), 100), 827);
-        assert_eq!(width_for_size(5100, Some(PageSize::A4), 600), 4960);
-        assert_eq!(width_for_size(2550, Some(PageSize::BusinessCard), 300), 1063);
+        assert_eq!(width_for_size(2550, Some(PageSize::A4), 300, false), 2480);
+        assert_eq!(width_for_size(850, Some(PageSize::A4), 100, false), 827);
+        assert_eq!(width_for_size(5100, Some(PageSize::A4), 600, false), 4960);
+        assert_eq!(width_for_size(2550, Some(PageSize::BusinessCard), 300, false), 1063);
         // As wide as the bed or wider: the bed stands.
-        assert_eq!(width_for_size(2550, Some(PageSize::Letter), 300), 2550);
-        assert_eq!(width_for_size(2550, Some(PageSize::Legal), 300), 2550);
-        assert_eq!(width_for_size(2400, Some(PageSize::Letter), 300), 2400);
+        assert_eq!(width_for_size(2550, Some(PageSize::Letter), 300, false), 2550);
+        assert_eq!(width_for_size(2550, Some(PageSize::Legal), 300, false), 2550);
+        assert_eq!(width_for_size(2400, Some(PageSize::Letter), 300, false), 2400);
         // No size, or one that names no width: the driver's width stands.
-        assert_eq!(width_for_size(2550, None, 300), 2550);
-        assert_eq!(width_for_size(2550, Some(PageSize::Auto), 300), 2550);
-        assert_eq!(width_for_size(2550, Some(PageSize::Custom), 300), 2550);
+        assert_eq!(width_for_size(2550, None, 300, false), 2550);
+        assert_eq!(width_for_size(2550, Some(PageSize::Auto), 300, false), 2550);
+        assert_eq!(width_for_size(2550, Some(PageSize::Custom), 300, false), 2550);
+    }
+
+    #[test]
+    fn a_wsd_port_keeps_the_drivers_width_because_the_driver_narrows_a_written_one_again() {
+        // The inbox WSD driver on a DCP-J105 returns A4's 2480 px at 300 dpi when 2550 is written, but 2432 when
+        // 2480 is: narrowing first would lose 4 mm of the page.
+        assert_eq!(width_for_size(2550, Some(PageSize::A4), 300, true), 2550);
+        assert_eq!(width_for_size(2550, Some(PageSize::BusinessCard), 300, true), 2550);
     }
 
     #[test]

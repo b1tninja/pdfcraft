@@ -664,7 +664,7 @@ fn acquire_pages(settings: &ScanSettings, route: &Cell<Option<(Source, bool)>>) 
     let mut frame = frame;
     if settings.region.is_none() {
         // The page size's width, when the driver kept its wider extent (an explicit region already says the width).
-        frame.width = length::width_for_size(frame.width, settings.page_size, settings.dpi);
+        frame.width = length::width_for_size(frame.width, settings.page_size, settings.dpi, wsd_port);
     }
     let mut inferring = false;
     if frame.width > 0 && frame.height > 0 {
